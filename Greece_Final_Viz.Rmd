@@ -1,0 +1,258 @@
+---
+title: "Greece_Final_Viz"
+author: "Abhinav Ganesh"
+date: "2022-12-04"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# import packages
+library(dplyr)
+library(tidyverse)
+library(stringr)
+library(ggplot2)
+```
+
+```{r}
+full_sent_df <- read.csv("/Users/abhi/Desktop/Mythology/full_sent_df.csv")
+```
+High Polarity Magnitude means High Subjectivity, but Subjectivity varies greatly with Low Polarity Magnitude.
+```{r}
+full_sent_df %>%
+  ggplot(aes(x=abs(polarity), y=subjectivity)) +
+  geom_point()
+```
+Plot bar for Various Translations of the Odyssey.
+It may be worth standardizing in the future if we seek to compare the relative ranking of characters in a novel across novels.
+```{r}
+# first calculate the overall mean polarity and subjectivity
+mean_polarity <- mean(full_sent_df$polarity)
+mean_subjectivity <-mean(full_sent_df$subjectivity)
+  
+
+# plot polarity
+full_sent_df %>%
+  filter(odysseus == "True") %>%
+  ggplot(aes(x=Translation, y=polarity, fill=Translation)) +
+  # plot mean bars
+  geom_bar(stat="summary", fun="mean") +
+  # add standard error bars
+  geom_errorbar(stat="summary") + 
+  geom_hline(yintercept = mean_polarity, linetype="dashed", color="red") +
+  labs(title="Polarity Scores by Translation of the Odyssey", y= "Polarity Score")
+
+# plot subjectivity
+full_sent_df %>%
+  filter(odysseus == "True") %>%
+  ggplot(aes(x=Translation, y=subjectivity, fill=Translation)) +
+  # plot mean bars
+  geom_bar(stat="summary", fun="mean") +
+  # add standard error bars
+  geom_errorbar(stat="summary") + 
+  geom_hline(yintercept = mean_subjectivity, linetype="dashed", color="red") +
+  labs(title="Subjectivity Scores by Translation of the Odyssey", y= "Subjectivity Score")
+```
+```{r}
+# plot subjectivity
+full_sent_df %>%
+  filter(odysseus == "True") %>%
+  ggplot(aes(x=polarity, fill=Translation, alpha=0.05)) +
+  # plot mean bars
+  geom_density()
+
+
+# after standardization, all means are 0
+# plot subjectivity
+full_sent_df %>%
+  filter(odysseus == "True") %>%
+  ggplot(aes(x=standardized_polarity, fill=Translation, alpha=0.05)) +
+  # plot mean bars
+  geom_density()
+```
+
+
+```{r}
+characters_df <- read.csv("/Users/abhi/Desktop/Mythology/characters_df.csv")
+```
+
+```{r}
+characters_df %>%
+  filter(Translation == "Butler") %>%
+  select(word, std_standardized_subjectivity)
+```
+Plotting the mean of the standardized polarities across all translations for each character.
+We can see that antagonists (antinous, circe, polyphemus, poseidon, scylla) all have negative means. Calypso has a positive mean but perhaps this is because she is described with positive words (e.g. beautiful, etc.). 
+Monsters (circe, polyphemus, poseidon, scylla) have overall negative polarity because they are often antagonists.
+```{r}
+# translation_of_interest = "All"
+# characters_df %>%
+#   filter(Translation == translation_of_interest) %>%
+#   ggplot(aes(x=word, y=mean_standardized_polarity, fill=word)) +
+#   # plot mean bars
+#   geom_bar(stat="summary", fun="identity") +
+#   # add standard error bars
+#   # geom_errorbar(mapping=aes(x=word, ymin=mean_standardized_polarity - std_standardized_polarity, ymax=mean_standardized_polarity + std_standardized_polarity)) +
+#   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
+#   labs(title = paste("Mean Standardized Polarity Scores for",translation_of_interest,"Translation(s) of the Odyssey"))
+
+
+translation_cats = unique(characters_df$Translation)
+for (translation_of_interest in translation_cats) {
+  characters_df %>%
+  filter(Translation == translation_of_interest) %>%
+    ggplot(aes(x=word, y=mean_standardized_polarity, fill=word)) +
+    # plot mean bars
+    geom_bar(stat="summary", fun="identity") +
+    # add standard error bars
+    #geom_errorbar(mapping=aes(x=word, ymin=mean_standardized_polarity - std_standardized_polarity, ymax=mean_standardized_polarity + std_standardized_polarity)) +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
+    labs(title = paste("Mean Standardized Polarity Scores for",translation_of_interest,"Translation(s) of the Odyssey"), x="Character", y="Mean Standardized Polarity Score")     -> graph_obj
+  
+  print(graph_obj)
+}
+```
+However, when we plot the same graph with error bars we see very large degrees of variation which don't imply a significant difference in terms of the mean standardized polarity scores for each character. 
+
+```{r}
+# translation_of_interest = "All"
+# characters_df %>%
+#   filter(Translation == translation_of_interest) %>%
+#   ggplot(aes(x=word, y=mean_standardized_polarity, fill=word)) +
+#   # plot mean bars
+#   geom_bar(stat="summary", fun="identity") +
+#   # add standard error bars
+#   # geom_errorbar(mapping=aes(x=word, ymin=mean_standardized_polarity - std_standardized_polarity, ymax=mean_standardized_polarity + std_standardized_polarity)) +
+#   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
+#   labs(title = paste("Mean Standardized Polarity Scores for",translation_of_interest,"Translation(s) of the Odyssey"))
+
+
+translation_cats = unique(characters_df$Translation)
+for (translation_of_interest in translation_cats) {
+  characters_df %>%
+  filter(Translation == translation_of_interest) %>%
+    ggplot(aes(x=word, y=mean_polarity, fill=word)) +
+    # plot mean bars
+    geom_bar(stat="summary", fun="identity") +
+    # add standard error bars
+    geom_errorbar(mapping=aes(x=word, ymin=mean_polarity - std_polarity, ymax=mean_polarity + std_polarity)) +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
+    labs(title = paste("Mean Polarity Scores for",translation_of_interest,"Translation(s) of the Odyssey"), x="Character", y="Mean Polarity Score")     -> graph_obj
+  
+  print(graph_obj)
+}
+```
+
+
+```{r}
+# comparing the standardized means overall
+characters_df %>%
+  filter(Translation != "All") %>%
+  ggplot(aes(x=word, y=mean_standardized_polarity)) +
+  # plot mean bars
+  #geom_bar(stat="summary", fun="mean") +
+  geom_point(stat="summary", fun="mean", size=4, shape=21, fill="white")+
+  # add standard error bars
+  geom_errorbar(stat="summary") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
+  labs(title = paste("
+  Mean Standardized Polarity Scores of Characters 
+  across all Translations of the Odyssey"), 
+  x="Character", y="Mean Standardized Polarity Score")
+  #geom_hline(yintercept = mean_polarity, linetype="dashed", color="red")
+```
+Compare between characters of different economic statuses
+```{r}
+# demographic_groups = c("Creature_Type", "Gender", "Economic_Status")
+
+# comparing the standardized means overall
+characters_df %>%
+  filter(Translation != "All") %>%
+  ggplot(aes(x=Creature_Type, y=mean_standardized_polarity)) +
+  # plot mean bars
+  #geom_bar(stat="summary", fun="mean") +
+  geom_point(stat="summary", fun="mean", size=4, shape=21, fill="white") +
+  # add standard error bars
+  geom_errorbar(stat="summary") +
+  labs(title = paste("
+  Mean Standardized Polarity Scores of between Creature Types 
+  across all Translations of the Odyssey"), 
+  x="Creature Type", y="Mean Standardized Polarity Score") -> graph_obj
+  #geom_hline(yintercept = mean_polarity, linetype="dashed", color="red")
+print(graph_obj)
+
+
+# comparing the standardized means overall
+characters_df %>%
+  filter(Translation != "All") %>%
+  ggplot(aes(x=Gender, y=mean_standardized_polarity)) +
+  # plot mean bars
+  #geom_bar(stat="summary", fun="mean") +
+  geom_point(stat="summary", fun="mean", size=4, shape=21, fill="white") +
+  # add standard error bars
+  geom_errorbar(stat="summary") +
+  labs(title = paste("
+  Mean Standardized Polarity Scores between Gender Groups 
+  across all Translations of the Odyssey"), 
+  x="Gender Group", y="Mean Standardized Polarity Score") -> graph_obj
+  #geom_hline(yintercept = mean_polarity, linetype="dashed", color="red")
+print(graph_obj)
+
+
+# comparing the standardized means overall
+characters_df %>%
+  filter(Translation != "All") %>%
+  ggplot(aes(x=Economic_Status, y=mean_standardized_polarity)) +
+  # plot mean bars
+  #geom_bar(stat="summary", fun="mean") +
+  geom_point(stat="summary", fun="mean", size=4, shape=21, fill="white") +
+  # add standard error bars
+  geom_errorbar(stat="summary") +
+  labs(title = paste("
+  Mean Standardized Polarity Scores of Economic Groups 
+  across all Translations of the Odyssey"), 
+  x="Economic Group", y="Mean Standardized Polarity Score") -> graph_obj
+  #geom_hline(yintercept = mean_polarity, linetype="dashed", color="red")
+print(graph_obj)
+```
+How does the translator impact the framing of a character?
+We see interesting variations w the following
+```{r}
+characters_of_interest = list("Polyphemus", "Scylla", "Euryclea", "Calypso", "Antinous", "poseidon", "zeus")
+
+for (charac in characters_of_interest) {
+  characters_df %>%
+    filter(Translation != "All") %>%
+    filter(word == tolower(charac)) %>%
+    ggplot(aes(x=Translation, y=mean_standardized_polarity, fill=Translation)) +
+    # plot mean bars
+    geom_point(stat="summary", fun="mean", size=4, shape=21) +
+    #geom_bar(stat="summary", fun="identity") +
+    # add standard error bars
+    # SE  = SD/sqrt(n)
+    geom_errorbar(mapping=aes(x=Translation, ymin=mean_standardized_polarity - std_standardized_polarity/sqrt(n), ymax=mean_standardized_polarity + std_standardized_polarity/sqrt(n))) +
+    labs(title = paste("Mean Standardized Polarity Scores for",charac,"
+                       across Translation(s) of the Odyssey"), x="Translation", y="Mean Standardized Polarity Score")     -> graph_obj
+  
+  print(graph_obj)
+}
+```
+
+```{r }
+characters_df %>%
+    filter(Translation != "All") %>%
+    ggplot(aes(x=Translation, y=mean_standardized_polarity, fill=Translation)) +
+    # plot mean bars
+    #geom_point(stat="summary", fun="mean", size=4, shape=21) +
+    #geom_bar(stat="summary", fun="identity", position = position_dodge()) +
+    # add standard error bars
+    geom_errorbar(mapping=aes(x=Translation, ymin=mean_standardized_polarity - std_standardized_polarity/sqrt(n), ymax=mean_standardized_polarity + std_standardized_polarity/sqrt(n))) +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+    facet_wrap(~ word, nrow=2) +
+    labs(title = paste("Standard Error of Mean Standardized Polarity Scores for Characters
+                       across Translation(s) of the Odyssey"), x="Translation", y="Polarity Score")
+```
+
